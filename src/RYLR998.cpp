@@ -191,7 +191,7 @@ String RYLR998::_sendCommand(const String &command, unsigned long timeout)
     {
     if (_debug)
         Serial.println("sending lora command: "+command);
-        
+
     _serial.println(command);
     unsigned long start = millis();
     while (millis() - start < timeout)
