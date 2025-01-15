@@ -27,6 +27,7 @@ public:
     bool setCPIN(const String& password);
     bool setRFPower(uint8_t power);
     bool setBaudRate(uint32_t baudrate);
+    bool setdebug(bool debugMode);
     bool testComm();
     String getMode();
     String getBand();
@@ -41,6 +42,7 @@ private:
     SoftwareSerial _serial;
     int8_t _rxPin;
     int8_t _txPin;
+    bool _debug=false;
     StaticJsonDocument<250>* _doc;
     String _sendCommand(const String& command, unsigned long timeout = 1000);
     void _parseRcvString(const String& input, String& address, String& length, String& jsonData, String& rssi, String& snr);

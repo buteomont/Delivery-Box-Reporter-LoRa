@@ -340,6 +340,10 @@ void initSettings()
 
   loadSettings(); //set the values from eeprom 
 
+  if (settingsAreValid)
+    lora.setdebug(settings.debug); //should mirror the main class
+
+
   if (settings.maxdistance <= 0) //then this must be the first powerup
     {
     Serial.println("\n*********************** Resetting All EEPROM Values ************************");
@@ -838,6 +842,7 @@ bool processCommand(String cmd)
     if (!val)
       strcpy(val,"0");
     settings.debug=atoi(val)==1?true:false;
+    lora.setdebug(settings.debug);
     saveSettings();
     }
   else if ((strcmp(nme,"factorydefaults")==0) && (strcmp(val,"yes")==0)) //reset all eeprom settings
