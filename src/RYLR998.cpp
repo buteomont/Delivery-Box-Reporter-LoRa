@@ -7,12 +7,16 @@
 
 #include "RYLR998.h"
 
-RYLR998::RYLR998(int rx, int tx) : _serial(rx, tx), _doc(nullptr) {}
+RYLR998::RYLR998(int rx, int tx) : _serial(rx, tx), _doc(nullptr) 
+    {
+    _rxPin=rx;
+    _txPin=tx;
+    }
 
 void RYLR998::begin(long baudRate)
     {
     Serial.println("Setting LoRa serial baud rate to "+String(baudRate));
-    _serial.begin(baudRate);
+    _serial.begin(baudRate, SWSERIAL_8N1, _rxPin, _txPin, false, 120);
     }
 
 void RYLR998::setJsonDocument(StaticJsonDocument<250> &doc)

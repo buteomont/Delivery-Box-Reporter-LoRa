@@ -421,7 +421,7 @@ void setup()
     initDisplay();
     initSensor(); //sensor should be initialized after display because display sets up i2c
     configureLoRa();
-    
+
     //Get a measurement and compare the presence with the last one stored in EEPROM.
     //If they are the same, no need to phone home. Unless an hour has passed since
     //the last time home was phoned. 
@@ -475,7 +475,7 @@ void loop()
               && distance<settings.maxdistance;
     show(distance," mm");
     report();
-    myDelay(15000);
+    myDelay(1000);
     } 
   else if (settingsAreValid                        //setup has been done and
           && millis()-doneTimestamp>PUBLISH_DELAY) //waited long enough for report to finish
@@ -918,6 +918,8 @@ int readBattery()
 float convertToVoltage(int raw)
   {
   int vcc=map(raw,0,FULL_BATTERY_COUNT,0,FULL_BATTERY_VOLTS);
+  if (settings.debug)
+    Serial.println("Mapped "+String(raw)+" to "+String(vcc));
   float f=((float)vcc)/100.0;
   return f;
   }
@@ -928,13 +930,13 @@ float convertToVoltage(int raw)
  ************************/
 void report()
   {
-  doc["distance"]=getDistance();
-  doc["battery"]=convertToVoltage(readBattery());
+  doc["distance"]=distance;
+  doc["battery"]=(float)convertToVoltage(readBattery());
   doc["isPresent"]=isPresent;
   if (publish())
-    Serial.println("Sending data failed.");
+    Serial.println("Sending data successful.");
   else
-    Serial.println("Sending data successful!");
+    Serial.println("Sending data failed!");
   }
 
 boolean publish()

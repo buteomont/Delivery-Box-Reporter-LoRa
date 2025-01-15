@@ -39,6 +39,8 @@ public:
 
 private:
     SoftwareSerial _serial;
+    int8_t _rxPin;
+    int8_t _txPin;
     StaticJsonDocument<250>* _doc;
     String _sendCommand(const String& command, unsigned long timeout = 1000);
     void _parseRcvString(const String& input, String& address, String& length, String& jsonData, String& rssi, String& snr);
