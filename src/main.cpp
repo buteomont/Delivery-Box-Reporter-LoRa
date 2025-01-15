@@ -127,15 +127,15 @@
 
 #define VERSION "24.11.09.0"  //remember to update this after every change! YY.MM.DD.REV
  
-#include <PubSubClient.h> 
-#include <ESP8266WiFi.h>
+//#include <ESP8266WiFi.h>
+#include "user_interface.h"
 #include <EEPROM.h>
-#include "delivery_reporter_lora.h"
 #include <VL53L0X.h>
 #include <Adafruit_SSD1306.h>
 #include <Adafruit_GFX.h>
-#include "RYLR998.h"
 #include <LoRa.h>
+#include "RYLR998.h"
+#include "delivery_reporter_lora.h"
 
 VL53L0X sensor;
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
@@ -153,16 +153,20 @@ typedef struct
   unsigned int validConfig=0; 
   int mindistance=0;  // Item is present if distance is greater than this
   int maxdistance=400;// and distance is less than this
-  int sleeptime=10; //seconds to sleep between distance checks
+  int sleeptime=DEFAULT_SLEEP_TIME; //seconds to sleep between distance checks
   bool debug=false;
   bool displayenabled=true;    //enable the display
   bool invertdisplay=false;   //rotate display 180 degrees
-  uint16_t loraTargetAddress=DEFAULT_LORA_TARGET_ADDRESS;
-  uint16_t myLoRaAddress=DEFAULT_LORA_ADDRESS;
-  uint8_t loRaNetworkId=DEFAULT_LORA_NETWORK_ID;
-  uint32_t loRaBand=DEFAULT_LORA_BAND;
-
-
+  uint16_t loRaTargetAddress=DEFAULT_LORA_TARGET_ADDRESS;
+  int loRaAddress=DEFAULT_LORA_ADDRESS;
+  int loRaNetworkID=DEFAULT_LORA_NETWORK_ID;
+  uint32_t loRaBand=DEFAULT_LORA_BAND; //(915000000);
+  byte loRaSpreadingFactor=DEFAULT_LORA_SPREADING_FACTOR;
+  byte loRaBandwidth=DEFAULT_LORA_BANDWIDTH;
+  byte loRaCodingRate=DEFAULT_LORA_CODING_RATE;
+  byte loRaPreamble=DEFAULT_LORA_PREAMBLE;
+  uint32_t loRaBaudRate=DEFAULT_LORA_BAUD_RATE; //both for RF and serial comms
+  uint8_t loRaPower=DEFAULT_LORA_POWER; //dbm
   } conf;
 
 conf settings; //all settings in one struct makes it easier to store in EEPROM
@@ -202,9 +206,6 @@ MY_RTC myRtc;
 
 ADC_MODE(ADC_VCC); //so we can use the ADC to measure the battery voltage
 
-IPAddress ip;
-IPAddress mask;
-
 /* Like delay() but checks for serial input */
 void myDelay(ulong ms)
   {
@@ -215,6 +216,24 @@ void myDelay(ulong ms)
     delay(10);
     }
   }
+
+// Configure LoRa module
+void configureLoRa()
+  {
+  if (settingsAreValid)
+    {
+    lora.setAddress(settings.loRaAddress);
+    lora.setNetworkID(settings.loRaNetworkID);
+    lora.setBand(settings.loRaBand);
+    lora.setRFPower(settings.loRaPower);
+    lora.setBaudRate(settings.loRaBaudRate);
+    lora.setParameter(settings.loRaSpreadingFactor, 
+                      settings.loRaBandwidth, 
+                      settings.loRaCodingRate, 
+                      settings.loRaPreamble);
+    }
+  }
+
 
 void show(String msg)
   {
@@ -263,7 +282,7 @@ void initSensor()
     Serial.println("Initializing sensor...");
     }
 
-  pinMode(PORT_XSHUT,OUTPUT_OPEN_DRAIN);
+  // pinMode(PORT_XSHUT,OUTPUT);
   digitalWrite(PORT_XSHUT,HIGH); //Enable the sensor
 
   uint8 retry=0;
@@ -388,7 +407,9 @@ void initDisplay()
 
 void setup() 
   {
-  delay(1000); //let it stabilize after a deep sleep
+  pinMode(PORT_XSHUT,OUTPUT);
+  digitalWrite(PORT_XSHUT,LOW); //Let it finish booting
+
   initSerial();
 
   initSettings();
@@ -447,18 +468,12 @@ void loop()
   checkForCommand(); // Check for input in case something needs to be changed to work
   if (settingsAreValid && settings.sleeptime==0) //if sleepTime is zero then don't sleep
     {
-    connectToWiFi(); //may need to connect to the wifi
-
-    if (WiFi.status() == WL_CONNECTED)
-      {    
-      reconnect();  // may need to reconnect to the MQTT broker
-      distance=measure();
-      isPresent=distance>settings.mindistance 
-                && distance<settings.maxdistance;
-      show(distance," mm");
-      report();
-      myDelay(9000);
-      }
+    distance=measure();
+    isPresent=distance>settings.mindistance 
+              && distance<settings.maxdistance;
+    show(distance," mm");
+    report();
+    myDelay(15000);
     } 
   else if (settingsAreValid                        //setup has been done and
           && millis()-doneTimestamp>PUBLISH_DELAY) //waited long enough for report to finish
@@ -484,7 +499,6 @@ void loop()
     myRtc.wasPresent=isPresent; //this presence flag becomes the last presence flag
     saveRTC(); //save the timing before we sleep 
     
-    WiFi.disconnect(true);
     digitalWrite(PORT_XSHUT,LOW);   //turn off the TOF sensor
     if (settings.displayenabled)
       {
@@ -526,36 +540,27 @@ void sendOrNot()
       ||((myRtc.wasPresent && isPresent) && !myRtc.presentReported))
     {      
     // ********************* attempt to connect to Wifi network
-    connectToWiFi();
+    report();
 
-    if (WiFi.status() == WL_CONNECTED)
-      {  
-      // ********************* Initialize the MQTT connection
-      reconnect();  // connect to the MQTT broker
-      
-      report();
-
-      if (isPresent)
-        {
-        myRtc.presentReported=true;
-        myRtc.absentReported=false;
-        }
-      else
-        {
-        myRtc.absentReported=true;
-        myRtc.presentReported=false;
-        }
-      
-      doneTimestamp=millis(); //this is to allow the publish to complete before sleeping
-      if (myMillis()>myRtc.nextHealthReportTime)
-        {
-        myRtc.rtc=millis(); //122024dep reset this to keep it from overflowing in 49 days
-        }
-      myRtc.nextHealthReportTime=myMillis()+ONE_HOUR;
-      myDelay(5000); //wait for any incoming messages
+    if (isPresent)
+      {
+      myRtc.presentReported=true;
+      myRtc.absentReported=false;
       }
+    else
+      {
+      myRtc.absentReported=true;
+      myRtc.presentReported=false;
+      }
+    
+    doneTimestamp=millis(); //this is to allow the publish to complete before sleeping
+    if (myMillis()>myRtc.nextHealthReportTime)
+      {
+      myRtc.rtc=millis(); //122024dep reset this to keep it from overflowing in 49 days
+      }
+    myRtc.nextHealthReportTime=myMillis()+ONE_HOUR;
+    myDelay(5000); //wait for any incoming messages
     }
-  
   }
 
 /* Draw a dot at a point on the screen, and increment to the next position */
@@ -637,6 +642,37 @@ void showSettings()
   Serial.print("invertdisplay=1|0 (");
   Serial.print(settings.invertdisplay);
   Serial.println(")");
+  Serial.print("loRaTargetAddress=<Target LoRa module's address 0-65535> (");
+  Serial.print(settings.loRaTargetAddress);
+  Serial.println(")");
+  Serial.print("loRaAddress=<LoRa module's address 0-65535> (");
+  Serial.print(settings.loRaAddress);
+  Serial.println(")");
+  Serial.print("loRaBand=<Freq in Hz> (");
+  Serial.print(settings.loRaBand);
+  Serial.println(")");
+  Serial.print("loRaBandwidth=<bandwidth code 7-9> (");
+  Serial.print(settings.loRaBandwidth);
+  Serial.println(")");
+  Serial.print("loRaCodingRate=<Coding rate code 1-4> (");
+  Serial.print(settings.loRaCodingRate);
+  Serial.println(")");
+  Serial.print("loRaNetworkID=<Network ID 3-15 or 18> (");
+  Serial.print(settings.loRaNetworkID);
+  Serial.println(")");
+  Serial.print("loRaSpreadingFactor=<Spreading Factor 5-11> (");
+  Serial.print(settings.loRaSpreadingFactor);
+  Serial.println(")");
+  Serial.print("loRaPreamble=<4-24, see docs> (");
+  Serial.print(settings.loRaPreamble);
+  Serial.println(")");
+  Serial.print("loRaBaudRate=<baud rate> (");
+  Serial.print(settings.loRaBaudRate);
+  Serial.println(")");
+  Serial.print("loRaPower=<RF power in dbm> (");
+  Serial.print(settings.loRaPower);
+  Serial.println(")");
+
   Serial.println("\n*** Use NULL to reset a setting to its default value ***");
   Serial.println("*** Use \"factorydefaults=yes\" to reset all settings  ***\n");
   
@@ -716,6 +752,85 @@ bool processCommand(String cmd)
     settings.sleeptime=atoi(val);
     saveSettings();
     }
+  else if (strcmp(nme,"loRaTargetAddress")==0)
+    {
+    if (!val)
+      strcpy(val,"0");
+    settings.loRaTargetAddress=atoi(val);
+    saveSettings();
+    }
+  else if (strcmp(nme,"loRaAddress")==0)
+    {
+    if (!val)
+      strcpy(val,"0");
+    settings.loRaAddress=atoi(val);
+    configureLoRa();
+    saveSettings();
+    }
+  else if (strcmp(nme,"loRaBand")==0)
+    {
+    if (!val)
+      strcpy(val,"0");
+    settings.loRaBand=atoi(val);
+    configureLoRa();
+    saveSettings();
+    }
+  else if (strcmp(nme,"loRaBandwidth")==0)
+    {
+    if (!val)
+      strcpy(val,"0");
+    settings.loRaBandwidth=atoi(val);
+    configureLoRa();
+    saveSettings();
+    }
+  else if (strcmp(nme,"loRaCodingRate")==0)
+    {
+    if (!val)
+      strcpy(val,"0");
+    settings.loRaCodingRate=atoi(val);
+    configureLoRa();
+    saveSettings();
+    }
+  else if (strcmp(nme,"loRaNetworkID")==0)
+    {
+    if (!val)
+      strcpy(val,"0");
+    settings.loRaNetworkID=atoi(val);
+    configureLoRa();
+    saveSettings();
+    }
+  else if (strcmp(nme,"loRaSpreadingFactor")==0)
+    {
+    if (!val)
+      strcpy(val,"0");
+    settings.loRaSpreadingFactor=atoi(val);
+    configureLoRa();
+    saveSettings();
+    }
+  else if (strcmp(nme,"loRaPreamble")==0)
+    {
+    if (!val)
+      strcpy(val,"0");
+    settings.loRaPreamble=atoi(val);
+    configureLoRa();
+    saveSettings();
+    }
+  else if (strcmp(nme,"loRaBaudRate")==0)
+    {
+    if (!val)
+      strcpy(val,"0");
+    settings.loRaBaudRate=atoi(val);
+    configureLoRa();
+    saveSettings();
+    }
+  else if (strcmp(nme,"loRaPower")==0)
+    {
+    if (!val)
+      strcpy(val,"0");
+    settings.loRaPower=atoi(val);
+    configureLoRa();
+    saveSettings();
+    }
   else if (strcmp(nme,"debug")==0)
     {
     if (!val)
@@ -759,8 +874,19 @@ void initializeSettings()
   settings.validConfig=0; 
   settings.mindistance=0;
   settings.maxdistance=400;
-  settings.sleeptime=10;
+  settings.sleeptime=DEFAULT_SLEEP_TIME;
   settings.displayenabled=true;
+  settings.invertdisplay=false;
+  settings.loRaTargetAddress=DEFAULT_LORA_TARGET_ADDRESS;
+  settings.loRaAddress=DEFAULT_LORA_ADDRESS;
+  settings.loRaNetworkID=DEFAULT_LORA_NETWORK_ID;
+  settings.loRaBand=DEFAULT_LORA_BAND;
+  settings.loRaSpreadingFactor=DEFAULT_LORA_SPREADING_FACTOR;
+  settings.loRaBandwidth=DEFAULT_LORA_BANDWIDTH;
+  settings.loRaCodingRate=DEFAULT_LORA_CODING_RATE;
+  settings.loRaPreamble=DEFAULT_LORA_PREAMBLE;
+  settings.loRaBaudRate=DEFAULT_LORA_BAUD_RATE;
+  settings.loRaPower=DEFAULT_LORA_POWER;
   }
 
 void checkForCommand()
@@ -803,13 +929,18 @@ void report()
   doc["distance"]=getDistance();
   doc["battery"]=convertToVoltage(readBattery());
   doc["isPresent"]=isPresent;
+  if (publish())
+    Serial.println("Sending data failed.");
+  else
+    Serial.println("Sending data successful!");
   }
 
-boolean publish(char* topic, const char* reading, boolean retain)
+boolean publish()
   {
   String json;
   serializeJson(doc,json);
-  lora.send(settings.loraTargetAddress, json);
+  Serial.println("Publishing "+json);
+  return lora.send(settings.loRaTargetAddress, json);
   }
 
   
@@ -830,7 +961,7 @@ void loadSettings()
     }
   else
     {
-    Serial.println("Skipping load from EEPROM, device not configured.");    
+    Serial.println("\nSkipping load from EEPROM, device not configured.");    
     settingsAreValid=false;
     }
   }

@@ -3,24 +3,22 @@
 
 #define LED_ON LOW
 #define LED_OFF HIGH
-#define PORT_XSHUT D6 //needs a pull-down resistor on the esp8266
+#define PORT_XSHUT D8 //needs a pull-down resistor on the esp8266
 #define PORT_DISPLAY D7
 #define SDA_PIN D2
 #define SCL_PIN D1
 
 #define MAX_HARDWARE_FAILURES 20
 #define VALID_SETTINGS_FLAG 0xDAB0
-#define SSID_SIZE 100
-#define PASSWORD_SIZE 50
-#define ADDRESS_SIZE 30
-#define USERNAME_SIZE 50
 #define JSON_MESSAGE_SIZE 50
 #define LORA_RX_PIN D5
 #define LORA_TX_PIN D6
-#define DEFAULT_LORA_TARGET_ADDRESS 3
-#define DEFAULT_LORA_ADDRESS 1
+#define DEFAULT_SLEEP_TIME 0
+#define DEFAULT_LORA_TARGET_ADDRESS 1
+#define DEFAULT_LORA_ADDRESS 3
 #define DEFAULT_LORA_NETWORK_ID 18
 #define DEFAULT_LORA_BAND 915000000
+#define DEFAULT_LORA_POWER 22
 #define DEFAULT_LORA_SPREADING_FACTOR 8
 #define DEFAULT_LORA_BANDWIDTH 7
 #define DEFAULT_LORA_CODING_RATE 1
@@ -65,21 +63,17 @@
 //PubSubClient callback function prototype.  This must appear before the PubSubClient constructor.
 // void incomingMqttHandler(char* reqTopic, byte* payload, unsigned int length);
 
-// void incomingMqttHandler(char* reqTopic, byte* payload, unsigned int length);;
 unsigned long myMillis();
 bool processCommand(String cmd);
 void checkForCommand();
-void connectToWiFi();
-// void incomingMqttHandler(char* reqTopic, byte* payload, unsigned int length); 
 int measure();
 int getDistance();
 void showSettings();
-void reconnect(); 
 void showSub(char* topic, bool subgood);
 void initializeSettings();
 int readBattery();
 void report();
-boolean publish(char* topic, const char* reading, bool retain);
+boolean publish();
 void loadSettings();
 boolean saveSettings();
 void saveRTC();
