@@ -222,6 +222,7 @@ void configureLoRa()
   {
   if (settingsAreValid)
     {
+    lora.begin(settings.loRaBaudRate);
     lora.setAddress(settings.loRaAddress);
     lora.setNetworkID(settings.loRaNetworkID);
     lora.setBand(settings.loRaBand);
@@ -419,7 +420,8 @@ void setup()
     //initialize everything
     initDisplay();
     initSensor(); //sensor should be initialized after display because display sets up i2c
-
+    configureLoRa();
+    
     //Get a measurement and compare the presence with the last one stored in EEPROM.
     //If they are the same, no need to phone home. Unless an hour has passed since
     //the last time home was phoned. 
