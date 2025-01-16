@@ -708,6 +708,8 @@ String getConfigCommand()
     {
     Serial.println(commandString);
     String newCommand=commandString;
+    if (newCommand.length()==0)
+      newCommand='\n'; //to show available commands
 
     commandString = "";
     commandComplete = false;
@@ -718,162 +720,185 @@ String getConfigCommand()
 
 bool processCommand(String cmd)
   {
+  if (settings.debug)
+    {
+    Serial.println("Command is |"+cmd+"|");
+    }
+
+  bool commandFound=true; //saves a lot of code
+
   const char *str=cmd.c_str();
   char *val=NULL;
   char *nme=strtok((char *)str,"=");
   if (nme!=NULL)
     val=strtok(NULL,"=");
 
-  //Get rid of the carriage return
-  if (val!=NULL && strlen(val)>0 && val[strlen(val)-1]==13)
-    val[strlen(val)-1]=0; 
+  if (settings.debug)
+    {
+    Serial.print("First char:");
+    Serial.print("(");
+    Serial.print((byte)nme[0]);
+    Serial.println(")");
+    }
 
-  if (nme==NULL || val==NULL || strlen(nme)==0 || strlen(val)==0)
+  if (nme[0]=='\n' || nme[0]=='\r' || nme[0]=='\0') //a single cr means show current settings
     {
     showSettings();
-    return false;   //not a valid command, or it's missing
-    }
-  else if (strcmp(val,"NULL")==0) //to nullify a value, you have to really mean it
-    {
-    strcpy(val,"");
-    }
-  else if (strcmp(nme,"mindistance")==0)
-    {
-    if (!val)
-      strcpy(val,"0");
-    settings.mindistance=atoi(val);
-    saveSettings();
-    }
-  else if (strcmp(nme,"maxdistance")==0)
-    {
-    if (!val)
-      strcpy(val,"400");
-    settings.maxdistance=atoi(val);
-    saveSettings();
-    }
-  else if (strcmp(nme,"sleeptime")==0)
-    {
-    if (!val)
-      strcpy(val,"0");
-    settings.sleeptime=atoi(val);
-    saveSettings();
-    }
-  else if (strcmp(nme,"loRaTargetAddress")==0)
-    {
-    if (!val)
-      strcpy(val,"0");
-    settings.loRaTargetAddress=atoi(val);
-    saveSettings();
-    }
-  else if (strcmp(nme,"loRaAddress")==0)
-    {
-    if (!val)
-      strcpy(val,"0");
-    settings.loRaAddress=atoi(val);
-    configureLoRa();
-    saveSettings();
-    }
-  else if (strcmp(nme,"loRaBand")==0)
-    {
-    if (!val)
-      strcpy(val,"0");
-    settings.loRaBand=atoi(val);
-    configureLoRa();
-    saveSettings();
-    }
-  else if (strcmp(nme,"loRaBandwidth")==0)
-    {
-    if (!val)
-      strcpy(val,"0");
-    settings.loRaBandwidth=atoi(val);
-    configureLoRa();
-    saveSettings();
-    }
-  else if (strcmp(nme,"loRaCodingRate")==0)
-    {
-    if (!val)
-      strcpy(val,"0");
-    settings.loRaCodingRate=atoi(val);
-    configureLoRa();
-    saveSettings();
-    }
-  else if (strcmp(nme,"loRaNetworkID")==0)
-    {
-    if (!val)
-      strcpy(val,"0");
-    settings.loRaNetworkID=atoi(val);
-    configureLoRa();
-    saveSettings();
-    }
-  else if (strcmp(nme,"loRaSpreadingFactor")==0)
-    {
-    if (!val)
-      strcpy(val,"0");
-    settings.loRaSpreadingFactor=atoi(val);
-    configureLoRa();
-    saveSettings();
-    }
-  else if (strcmp(nme,"loRaPreamble")==0)
-    {
-    if (!val)
-      strcpy(val,"0");
-    settings.loRaPreamble=atoi(val);
-    configureLoRa();
-    saveSettings();
-    }
-  else if (strcmp(nme,"loRaBaudRate")==0)
-    {
-    if (!val)
-      strcpy(val,"0");
-    settings.loRaBaudRate=atoi(val);
-    configureLoRa();
-    saveSettings();
-    }
-  else if (strcmp(nme,"loRaPower")==0)
-    {
-    if (!val)
-      strcpy(val,"0");
-    settings.loRaPower=atoi(val);
-    configureLoRa();
-    saveSettings();
-    }
-  else if (strcmp(nme,"debug")==0)
-    {
-    if (!val)
-      strcpy(val,"0");
-    settings.debug=atoi(val)==1?true:false;
-    lora.setdebug(settings.debug);
-    saveSettings();
-    }
-  else if ((strcmp(nme,"factorydefaults")==0) && (strcmp(val,"yes")==0)) //reset all eeprom settings
-    {
-    Serial.println("\n*********************** Resetting EEPROM Values ************************");
-    initializeSettings();
-    saveSettings();
-    delay(2000);
-    ESP.restart();
-    }
-  else if (strcmp(nme,"displayenabled")==0)
-    {
-    if (!val)
-      strcpy(val,"0");
-    settings.displayenabled=atoi(val)==1?true:false;
-    saveSettings();
-    }
-  else if (strcmp(nme,"invertdisplay")==0)
-    {
-    if (!val)
-      strcpy(val,"0");
-    settings.invertdisplay=atoi(val)==1?true:false;
-    display.setRotation(settings.invertdisplay?2:0); //go ahead and do it
-    saveSettings();
+    commandFound=false; //command not found
     }
   else
     {
-    showSettings();
-    return false; //command not found
+    //Get rid of the carriage return
+    if (val!=NULL && strlen(val)>0 && val[strlen(val)-1]==13)
+      val[strlen(val)-1]=0; 
+
+    if (nme==NULL || val==NULL || strlen(nme)==0 || strlen(val)==0)
+      {
+      showSettings();
+      return false;   //not a valid command, or it's missing
+      }
+    else if (strcmp(val,"NULL")==0) //to nullify a value, you have to really mean it
+      {
+      strcpy(val,"");
+      }
+    else if (strcmp(nme,"mindistance")==0)
+      {
+      if (!val)
+        strcpy(val,"0");
+      settings.mindistance=atoi(val);
+      saveSettings();
+      }
+    else if (strcmp(nme,"maxdistance")==0)
+      {
+      if (!val)
+        strcpy(val,"400");
+      settings.maxdistance=atoi(val);
+      saveSettings();
+      }
+    else if (strcmp(nme,"sleeptime")==0)
+      {
+      if (!val)
+        strcpy(val,"0");
+      settings.sleeptime=atoi(val);
+      saveSettings();
+      }
+    else if (strcmp(nme,"loRaTargetAddress")==0)
+      {
+      if (!val)
+        strcpy(val,"0");
+      settings.loRaTargetAddress=atoi(val);
+      saveSettings();
+      }
+    else if (strcmp(nme,"loRaAddress")==0)
+      {
+      if (!val)
+        strcpy(val,"0");
+      settings.loRaAddress=atoi(val);
+      configureLoRa();
+      saveSettings();
+      }
+    else if (strcmp(nme,"loRaBand")==0)
+      {
+      if (!val)
+        strcpy(val,"0");
+      settings.loRaBand=atoi(val);
+      configureLoRa();
+      saveSettings();
+      }
+    else if (strcmp(nme,"loRaBandwidth")==0)
+      {
+      if (!val)
+        strcpy(val,"0");
+      settings.loRaBandwidth=atoi(val);
+      configureLoRa();
+      saveSettings();
+      }
+    else if (strcmp(nme,"loRaCodingRate")==0)
+      {
+      if (!val)
+        strcpy(val,"0");
+      settings.loRaCodingRate=atoi(val);
+      configureLoRa();
+      saveSettings();
+      }
+    else if (strcmp(nme,"loRaNetworkID")==0)
+      {
+      if (!val)
+        strcpy(val,"0");
+      settings.loRaNetworkID=atoi(val);
+      configureLoRa();
+      saveSettings();
+      }
+    else if (strcmp(nme,"loRaSpreadingFactor")==0)
+      {
+      if (!val)
+        strcpy(val,"0");
+      settings.loRaSpreadingFactor=atoi(val);
+      configureLoRa();
+      saveSettings();
+      }
+    else if (strcmp(nme,"loRaPreamble")==0)
+      {
+      if (!val)
+        strcpy(val,"0");
+      settings.loRaPreamble=atoi(val);
+      configureLoRa();
+      saveSettings();
+      }
+    else if (strcmp(nme,"loRaBaudRate")==0)
+      {
+      if (!val)
+        strcpy(val,"0");
+      settings.loRaBaudRate=atoi(val);
+      configureLoRa();
+      saveSettings();
+      }
+    else if (strcmp(nme,"loRaPower")==0)
+      {
+      if (!val)
+        strcpy(val,"0");
+      settings.loRaPower=atoi(val);
+      configureLoRa();
+      saveSettings();
+      }
+    else if (strcmp(nme,"debug")==0)
+      {
+      if (!val)
+        strcpy(val,"0");
+      settings.debug=atoi(val)==1?true:false;
+      lora.setdebug(settings.debug);
+      saveSettings();
+      }
+    else if ((strcmp(nme,"factorydefaults")==0) && (strcmp(val,"yes")==0)) //reset all eeprom settings
+      {
+      Serial.println("\n*********************** Resetting EEPROM Values ************************");
+      initializeSettings();
+      saveSettings();
+      delay(2000);
+      ESP.restart();
+      }
+    else if (strcmp(nme,"displayenabled")==0)
+      {
+      if (!val)
+        strcpy(val,"0");
+      settings.displayenabled=atoi(val)==1?true:false;
+      saveSettings();
+      }
+    else if (strcmp(nme,"invertdisplay")==0)
+      {
+      if (!val)
+        strcpy(val,"0");
+      settings.invertdisplay=atoi(val)==1?true:false;
+      display.setRotation(settings.invertdisplay?2:0); //go ahead and do it
+      saveSettings();
+      }
+    else
+      {
+      showSettings();
+      commandFound=false; //command not found
+      }
     }
-  return true;
+  return commandFound;
   }
 
 void initializeSettings()
@@ -1018,6 +1043,13 @@ void incomingData()
     // get the new byte
     char inChar = (char)Serial.read();
     Serial.print(inChar); //echo it back to the terminal
+
+    if (settings.debug && (inChar=='\n' || inChar=='\r'))
+      {
+      Serial.print("(");
+      Serial.print((byte)inChar);
+      Serial.println(")");
+      }
 
     // if the incoming character is a newline, set a flag so the main loop can
     // do something about it 
