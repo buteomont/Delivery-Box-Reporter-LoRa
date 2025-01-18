@@ -376,7 +376,8 @@ void initSettings()
 
 //Take a measurement
 int getDistance()
-  {  
+  {
+  yield();  
   distance=sensor.readRangeSingleMillimeters();
   if (distance) 
     {
@@ -487,8 +488,6 @@ void setup()
 
 void checkForAck()
   {
-  if (doc["ack"])
-    Serial.println("%%%%%%doc says ack is "+String(doc["ack"]));
   if (doc["ack"] && String(doc["ack"])=="true")
     {
     if (settings.debug)
@@ -582,10 +581,13 @@ void loop()
  */
 void sendOrNot()
   {
+  //Serial.println("acked is "+myRtc.acked?"true":"false");
+
   if (myMillis()>myRtc.nextHealthReportTime
+      || myRtc.acked==false
       ||((!myRtc.wasPresent && !isPresent) && !myRtc.absentReported)
       ||((myRtc.wasPresent && isPresent) && !myRtc.presentReported)
-      || myRtc.acked==false)
+      )
     {      
     // ********************* attempt to connect to Wifi network
     report();
@@ -647,7 +649,7 @@ int measure()
     }
 
   //find the most common value within the sample set
-  //This code is not very efficient but hey, it's only 10 values
+  //This code is not very efficient but hey, it's only 5 values
   for (int i=0;i<SAMPLE_COUNT-1;i++) //using SAMPLE_COUNT-1 here because the last one can only have a count of 1
     {
     int candidate=vals[i];
@@ -1013,9 +1015,10 @@ void report()
   myRtc.acked=false; //no ack yet
   for (int i=0;i<5;i++)
     {
+  //  Serial.println("handleIncoming loop "+String(i));
     lora.handleIncoming(); //check for ack
     checkForAck();
-    if (doc["ack"])
+    if (myRtc.acked)
       break;
     delay(500);
     }
