@@ -108,6 +108,7 @@
  * +ERR=17: Last TX was not completed.
  * +ERR=18: Preamble value is not allowed.
  * +ERR=19: RX failed, Header error.
+ * **** NOTE that I have seen many bogus "+ERR=2" codes. Probably a bug in the RYLR998.
  * 
  * The data from the RYLR998 before processing is like this:
  * +RCV=3,46,{"DISTANCE":8123,"ISPRSENT":0,"BATTERY":3.41},-47,12
@@ -199,7 +200,7 @@ typedef struct
   bool wasPresent=false;      //Package present on last check
   bool presentReported=false; //MQTT Package Present report was sent
   bool absentReported=false;  //MQTT Package Removed report was sent
-  long rssi=-99;              //The signal strength
+  bool acked=true;            // true when last report was acknowledged by receiver
   } MY_RTC;
   
 MY_RTC myRtc;
@@ -218,6 +219,16 @@ void myDelay(ulong ms)
   }
 
 // Configure LoRa module
+void initLoRa()
+  {
+  if (settingsAreValid)
+    {
+    lora.begin(settings.loRaBaudRate);
+    lora.setJsonDocument(doc);
+    }
+  }
+
+// Configure LoRa module
 void configureLoRa()
   {
   if (settingsAreValid)
@@ -232,9 +243,18 @@ void configureLoRa()
                       settings.loRaBandwidth, 
                       settings.loRaCodingRate, 
                       settings.loRaPreamble);
+    lora.setJsonDocument(doc);
+  
+    Serial.println(lora.getMode());
+    Serial.println(lora.getBand());
+    Serial.println(lora.getParameter());
+    Serial.println(lora.getAddress());
+    Serial.println(lora.getNetworkID());
+    Serial.println(lora.getCPIN());
+    Serial.println(lora.getRFPower());
+    Serial.println(lora.getBaudRate()); 
     }
   }
-
 
 void show(String msg)
   {
@@ -424,7 +444,7 @@ void setup()
     //initialize everything
     initDisplay();
     initSensor(); //sensor should be initialized after display because display sets up i2c
-    configureLoRa();
+    initLoRa();
 
     //Get a measurement and compare the presence with the last one stored in EEPROM.
     //If they are the same, no need to phone home. Unless an hour has passed since
@@ -445,9 +465,6 @@ void setup()
     
     if (settings.debug)
       {
-      Serial.print("Last RSSI was ");
-      Serial.println(myRtc.rssi);
-
       Serial.print("Analog input is ");
       Serial.println(analog);
 
@@ -468,10 +485,31 @@ void setup()
     }
   }
 
+void checkForAck()
+  {
+  if (doc["ack"])
+    Serial.println("%%%%%%doc says ack is "+String(doc["ack"]));
+  if (doc["ack"] && String(doc["ack"])=="true")
+    {
+    if (settings.debug)
+      Serial.println("+++++++++ACK received!++++++++++");
+    myRtc.acked=true;
+    doc.clear();
+    }
+  else
+    {
+//    if (settings.debug)
+//      Serial.println("----------NO ACK received!---------");
+    myRtc.acked=false;
+    doc.clear();
+    }
+  }
+
 
 void loop()
   {
   checkForCommand(); // Check for input in case something needs to be changed to work
+  
   if (settingsAreValid && settings.sleeptime==0) //if sleepTime is zero then don't sleep
     {
     distance=measure();
@@ -479,7 +517,7 @@ void loop()
               && distance<settings.maxdistance;
     show(distance," mm");
     report();
-    myDelay(1000);
+    myDelay(1000); //give me time to read it
     } 
   else if (settingsAreValid                        //setup has been done and
           && millis()-doneTimestamp>PUBLISH_DELAY) //waited long enough for report to finish
@@ -516,7 +554,7 @@ void loop()
     Serial.print(goodnight);
     Serial.println(" seconds");
     ESP.deepSleep(goodnight*1000000, WAKE_RF_DEFAULT); 
-    } 
+    }
   }
 
 /**
@@ -538,12 +576,16 @@ void loop()
  * Yes  | No  | N/A    | N/A    | No
  * Yes  | Yes | False  | N/A    | Yes, set "Present Sent"=true, "Absent Sent"=false
  * Yes  | Yes | True   | N/A    | No
+ * 
+ * Note that it will also send the report if there has not been an acknowledgement
+ * received from the last report.
  */
 void sendOrNot()
   {
   if (myMillis()>myRtc.nextHealthReportTime
       ||((!myRtc.wasPresent && !isPresent) && !myRtc.absentReported)
-      ||((myRtc.wasPresent && isPresent) && !myRtc.presentReported))
+      ||((myRtc.wasPresent && isPresent) && !myRtc.presentReported)
+      || myRtc.acked==false)
     {      
     // ********************* attempt to connect to Wifi network
     report();
@@ -967,6 +1009,16 @@ void report()
     Serial.println("Sending data successful.");
   else
     Serial.println("Sending data failed!");
+  
+  myRtc.acked=false; //no ack yet
+  for (int i=0;i<5;i++)
+    {
+    lora.handleIncoming(); //check for ack
+    checkForAck();
+    if (doc["ack"])
+      break;
+    delay(500);
+    }
   }
 
 boolean publish()
