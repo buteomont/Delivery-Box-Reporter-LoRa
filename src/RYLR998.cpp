@@ -104,6 +104,13 @@ void RYLR998::begin(long baudRate)
     if (_debug)
         Serial.println("LORA:Setting softwareSerial baud rate to "+String(baudRate));
     _serial.begin(baudRate, SWSERIAL_8N1, _rxPin, _txPin, false, 120,1200);
+    
+    //clear out any lingering buffer contents
+    _serial.flush();
+    while(_serial.available())
+      {
+      _serial.read(); 
+      }
     }
 
 void RYLR998::setJsonDocument(StaticJsonDocument<250> &doc)
@@ -294,7 +301,7 @@ bool RYLR998::testComm()
 String RYLR998::_sendCommand(const String &command, unsigned long timeout)
     {
     if (_debug)
-        Serial.println("LORA:Sending lora command: "+command);
+        Serial.println("LORA:Sending lora command:"+command);
 
     _serial.println(command);
     unsigned long start = millis();
