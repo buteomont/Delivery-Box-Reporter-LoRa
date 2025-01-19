@@ -238,11 +238,11 @@ void configureLoRa()
     lora.setNetworkID(settings.loRaNetworkID);
     lora.setBand(settings.loRaBand);
     lora.setRFPower(settings.loRaPower);
-    lora.setBaudRate(settings.loRaBaudRate);
     lora.setParameter(settings.loRaSpreadingFactor, 
                       settings.loRaBandwidth, 
                       settings.loRaCodingRate, 
                       settings.loRaPreamble);
+    lora.setBaudRate(settings.loRaBaudRate); //do this last!
     lora.setJsonDocument(doc);
   
     Serial.println(lora.getMode());
@@ -377,8 +377,9 @@ void initSettings()
 //Take a measurement
 int getDistance()
   {
-  yield();  
+  yield(); //I think there's a bug in the VL53L0X library code  
   distance=sensor.readRangeSingleMillimeters();
+  yield(); //It occasionally triggers the watchdog timer
   if (distance) 
     {
     if (settings.debug)
@@ -490,8 +491,7 @@ void checkForAck()
   {
   if (doc["ack"] && String(doc["ack"])=="true")
     {
-    if (settings.debug)
-      Serial.println("+++++++++ACK received!++++++++++");
+    Serial.println("ACK received.");
     myRtc.acked=true;
     doc.clear();
     }
@@ -764,11 +764,6 @@ String getConfigCommand()
 
 bool processCommand(String cmd)
   {
-  if (settings.debug)
-    {
-    Serial.println("Command is |"+cmd+"|");
-    }
-
   bool commandFound=true; //saves a lot of code
 
   const char *str=cmd.c_str();
@@ -776,14 +771,6 @@ bool processCommand(String cmd)
   char *nme=strtok((char *)str,"=");
   if (nme!=NULL)
     val=strtok(NULL,"=");
-
-  if (settings.debug)
-    {
-    Serial.print("First char:");
-    Serial.print("(");
-    Serial.print((byte)nme[0]);
-    Serial.println(")");
-    }
 
   if (nme[0]=='\n' || nme[0]=='\r' || nme[0]=='\0') //a single cr means show current settings
     {
@@ -1098,13 +1085,6 @@ void incomingData()
     // get the new byte
     char inChar = (char)Serial.read();
     Serial.print(inChar); //echo it back to the terminal
-
-    if (settings.debug && (inChar=='\n' || inChar=='\r'))
-      {
-      Serial.print("(");
-      Serial.print((byte)inChar);
-      Serial.println(")");
-      }
 
     // if the incoming character is a newline, set a flag so the main loop can
     // do something about it 
