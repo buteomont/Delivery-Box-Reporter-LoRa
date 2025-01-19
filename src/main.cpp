@@ -166,8 +166,8 @@ typedef struct
   byte loRaBandwidth=DEFAULT_LORA_BANDWIDTH;
   byte loRaCodingRate=DEFAULT_LORA_CODING_RATE;
   byte loRaPreamble=DEFAULT_LORA_PREAMBLE;
-  uint32_t loRaBaudRate=DEFAULT_LORA_BAUD_RATE; //both for RF and serial comms
-  uint8_t loRaPower=DEFAULT_LORA_POWER; //dbm
+  uint32_t loRaBaudRate=DEFAULT_LORA_BAUD_RATE; //both for RF and RYLR998 serial comms
+  unsigned int loRaPower=DEFAULT_LORA_POWER; //dbm
   } conf;
 
 conf settings; //all settings in one struct makes it easier to store in EEPROM
@@ -223,38 +223,52 @@ void initLoRa()
   {
   if (settingsAreValid)
     {
-    lora.begin(settings.loRaBaudRate);
+    lora.begin((long)settings.loRaBaudRate);
     lora.setJsonDocument(doc);
+    if (settings.debug)
+      {
+      Serial.print("Testing LoRa device...");
+      Serial.println(lora.testComm()?"OK":"Failed");
+      }
     }
   }
 
-// Configure LoRa module
-void configureLoRa()
+// Configure some LoRa parameters. I don't know why these particular ones
+// are set all in one bunch on the RYLR998
+void setLoRaParameters()
   {
   if (settingsAreValid)
     {
-    lora.begin(settings.loRaBaudRate);
-    lora.setAddress(settings.loRaAddress);
-    lora.setNetworkID(settings.loRaNetworkID);
-    lora.setBand(settings.loRaBand);
-    lora.setRFPower(settings.loRaPower);
     lora.setParameter(settings.loRaSpreadingFactor, 
                       settings.loRaBandwidth, 
                       settings.loRaCodingRate, 
                       settings.loRaPreamble);
-    lora.setBaudRate(settings.loRaBaudRate); //do this last!
-    lora.setJsonDocument(doc);
-  
-    Serial.println(lora.getMode());
-    Serial.println(lora.getBand());
-    Serial.println(lora.getParameter());
-    Serial.println(lora.getAddress());
-    Serial.println(lora.getNetworkID());
-    Serial.println(lora.getCPIN());
-    Serial.println(lora.getRFPower());
-    Serial.println(lora.getBaudRate()); 
     }
   }
+
+//Show actual RYLR998 settings
+void showLoraSettings()
+  {
+  Serial.println("\n*** Internal RYLR998 settings ***");
+  Serial.print("Address: ");
+  Serial.println(lora.getAddress());
+  Serial.print("Network ID: ");
+  Serial.println(lora.getNetworkID());
+  Serial.print("Band: ");
+  Serial.println(lora.getBand());
+  Serial.print("Baud Rate: ");
+  Serial.println(lora.getBaudRate());
+  Serial.print("Mode: ");
+  Serial.println(lora.getMode());
+  Serial.print("Parameters: ");
+  Serial.println(lora.getParameter());
+  Serial.print("Password: ");
+  Serial.println(lora.getCPIN());
+  Serial.print("RF Power: ");
+  Serial.println(lora.getRFPower());
+  }
+
+
 
 void show(String msg)
   {
@@ -489,6 +503,8 @@ void setup()
 
 void checkForAck()
   {
+  if (settings.debug)
+    Serial.println("Checking for an ack");
   if (doc["ack"] && String(doc["ack"])=="true")
     {
     Serial.println("ACK received.");
@@ -724,7 +740,8 @@ void showSettings()
   Serial.println(")");
 
   Serial.println("\n*** Use NULL to reset a setting to its default value ***");
-  Serial.println("*** Use \"factorydefaults=yes\" to reset all settings  ***\n");
+  Serial.println("*** Use \"factorydefaults=yes\" to reset all settings  ***");
+  Serial.println("*** Use \"lorasettings=yes\" to show internal RYLR998 settings  ***\n");
   
   Serial.print("\nSettings are ");
   Serial.println(settingsAreValid?"complete.":"incomplete.");
@@ -825,72 +842,78 @@ bool processCommand(String cmd)
       if (!val)
         strcpy(val,"0");
       settings.loRaAddress=atoi(val);
-      configureLoRa();
       saveSettings();
+      lora.setAddress(settings.loRaAddress);
       }
     else if (strcmp(nme,"loRaBand")==0)
       {
       if (!val)
         strcpy(val,"0");
       settings.loRaBand=atoi(val);
-      configureLoRa();
       saveSettings();
+      lora.setBand(settings.loRaBand);
       }
     else if (strcmp(nme,"loRaBandwidth")==0)
       {
       if (!val)
         strcpy(val,"0");
       settings.loRaBandwidth=atoi(val);
-      configureLoRa();
       saveSettings();
+      setLoRaParameters();
       }
     else if (strcmp(nme,"loRaCodingRate")==0)
       {
       if (!val)
         strcpy(val,"0");
       settings.loRaCodingRate=atoi(val);
-      configureLoRa();
       saveSettings();
+      setLoRaParameters();
       }
     else if (strcmp(nme,"loRaNetworkID")==0)
       {
       if (!val)
         strcpy(val,"0");
       settings.loRaNetworkID=atoi(val);
-      configureLoRa();
       saveSettings();
+      lora.setNetworkID(settings.loRaNetworkID);
       }
     else if (strcmp(nme,"loRaSpreadingFactor")==0)
       {
       if (!val)
         strcpy(val,"0");
       settings.loRaSpreadingFactor=atoi(val);
-      configureLoRa();
       saveSettings();
+      setLoRaParameters();
       }
     else if (strcmp(nme,"loRaPreamble")==0)
       {
       if (!val)
         strcpy(val,"0");
       settings.loRaPreamble=atoi(val);
-      configureLoRa();
       saveSettings();
+      setLoRaParameters();
       }
     else if (strcmp(nme,"loRaBaudRate")==0)
       {
       if (!val)
         strcpy(val,"0");
       settings.loRaBaudRate=atoi(val);
-      configureLoRa();
       saveSettings();
+      lora.setBaudRate(settings.loRaBaudRate);
+
+      //this affects the baud rate of the software serial connection
+      //so we need to reboot
+      Serial.println("********** Rebooting ************");
+      delay(2000);
+      ESP.restart();
       }
     else if (strcmp(nme,"loRaPower")==0)
       {
       if (!val)
         strcpy(val,"0");
       settings.loRaPower=atoi(val);
-      configureLoRa();
       saveSettings();
+      lora.setRFPower(settings.loRaPower);
       }
     else if (strcmp(nme,"debug")==0)
       {
@@ -907,6 +930,10 @@ bool processCommand(String cmd)
       saveSettings();
       delay(2000);
       ESP.restart();
+      }
+    else if ((strcmp(nme,"lorasettings")==0) && (strcmp(val,"yes")==0)) //show RYLR998 settings
+      {
+      showLoraSettings();
       }
     else if (strcmp(nme,"displayenabled")==0)
       {
