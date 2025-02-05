@@ -431,7 +431,7 @@
     "pinned_symbol_libs": []
   },
   "meta": {
-    "filename": "delivery-box-reporter.kicad_pro",
+    "filename": "delivery-box-reporter-lora.kicad_pro",
     "version": 1
   },
   "net_settings": {
@@ -469,7 +469,7 @@
       "plot": "Gerbers/",
       "pos_files": "",
       "specctra_dsn": "",
-      "step": "../../../../Delivery Box Reporter LoRa/resources/FreeCAD/delivery-box-reporter-lora.step",
+      "step": "../../FreeCAD/delivery-box-reporter-receiver.step",
       "svg": "./",
       "vrml": ""
     },

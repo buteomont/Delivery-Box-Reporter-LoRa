@@ -1196,10 +1196,10 @@
 						)
 					)
 				)
-				(pin power_in line
-					(at -4.826 -11.176 90)
+				(pin passive line
+					(at 5.334 -11.176 90)
 					(length 2.54)
-					(name "3.3v"
+					(name "GND"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -1214,10 +1214,10 @@
 						)
 					)
 				)
-				(pin input line
-					(at -2.286 -11.176 90)
+				(pin output line
+					(at 2.794 -11.176 90)
 					(length 2.54)
-					(name "RST"
+					(name "TX"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -1250,10 +1250,10 @@
 						)
 					)
 				)
-				(pin output line
-					(at 2.794 -11.176 90)
+				(pin input line
+					(at -2.286 -11.176 90)
 					(length 2.54)
-					(name "TX"
+					(name "RST"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -1268,10 +1268,10 @@
 						)
 					)
 				)
-				(pin passive line
-					(at 5.334 -11.176 90)
+				(pin power_in line
+					(at -4.826 -11.176 90)
 					(length 2.54)
-					(name "GND"
+					(name "3.3v"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -5663,7 +5663,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "Power 4v-6v"
+		(property "Value" "Solar Power 4v-6v"
 			(at 45.212 96.012 0)
 			(effects
 				(font
