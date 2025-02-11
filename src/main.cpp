@@ -333,6 +333,7 @@ void initSensor()
   // every 10 seconds until it quits failing.
   while (++retry)
     {
+    yield();
     if (sensor.init()) 
       {
       if (settings.debug)
@@ -344,6 +345,7 @@ void initSensor()
       } 
     else 
       {
+      yield();
       if (retry==1)
         {
         Serial.println("Error initializing VL53L0X sensor!");

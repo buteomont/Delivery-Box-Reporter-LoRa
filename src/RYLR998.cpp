@@ -111,6 +111,11 @@ void RYLR998::begin(long baudRate)
       {
       _serial.read(); 
       }
+      
+    while(!testComm())
+      {
+      // keep trying until if works
+      }
     }
 
 void RYLR998::setJsonDocument(StaticJsonDocument<250> &doc)
