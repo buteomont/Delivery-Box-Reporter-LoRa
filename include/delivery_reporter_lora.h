@@ -11,6 +11,9 @@
 #define MAX_HARDWARE_FAILURES 20
 #define VALID_SETTINGS_FLAG 0xDAB0
 #define JSON_MESSAGE_SIZE 50
+#define LORA_ENABLE_PIN D4
+#define LORA_ENABLE HIGH
+#define LORA_DISABLE LOW
 #define LORA_RX_PIN D5
 #define LORA_TX_PIN D6
 #define DEFAULT_SLEEP_TIME 0
@@ -72,7 +75,7 @@ void showSettings();
 void showSub(char* topic, bool subgood);
 void initializeSettings();
 int readBattery();
-void report();
+bool report();
 boolean publish();
 void loadSettings();
 boolean saveSettings();

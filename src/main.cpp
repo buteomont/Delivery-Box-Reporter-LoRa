@@ -182,7 +182,7 @@ unsigned long doneTimestamp=0; //used to allow publishes to complete before slee
 // as "wasPresent" just before sleeping
 bool isPresent=false;
 
-//This is the distance measured on this pass. It will be written to RTC memory just before sleeping
+//This is the distance measured on this pass.
 int distance=0;
 
 boolean rssiShowing=false; //used to redraw the RSSI indicator after clearing display
@@ -217,58 +217,6 @@ void myDelay(ulong ms)
     delay(10);
     }
   }
-
-// Configure LoRa module
-void initLoRa()
-  {
-  if (settingsAreValid)
-    {
-    lora.begin((long)settings.loRaBaudRate);
-    lora.setJsonDocument(doc);
-    if (settings.debug)
-      {
-      Serial.print("Testing LoRa device...");
-      Serial.println(lora.testComm()?"OK":"Failed");
-      }
-    }
-  }
-
-// Configure some LoRa parameters. I don't know why these particular ones
-// are set all in one bunch on the RYLR998
-void setLoRaParameters()
-  {
-  if (settingsAreValid)
-    {
-    lora.setParameter(settings.loRaSpreadingFactor, 
-                      settings.loRaBandwidth, 
-                      settings.loRaCodingRate, 
-                      settings.loRaPreamble);
-    }
-  }
-
-//Show actual RYLR998 settings
-void showLoraSettings()
-  {
-  Serial.println("\n*** Internal RYLR998 settings ***");
-  Serial.print("Address: ");
-  Serial.println(lora.getAddress());
-  Serial.print("Network ID: ");
-  Serial.println(lora.getNetworkID());
-  Serial.print("Band: ");
-  Serial.println(lora.getBand());
-  Serial.print("Baud Rate: ");
-  Serial.println(lora.getBaudRate());
-  Serial.print("Mode: ");
-  Serial.println(lora.getMode());
-  Serial.print("Parameters: ");
-  Serial.println(lora.getParameter());
-  Serial.print("Password: ");
-  Serial.println(lora.getCPIN());
-  Serial.print("RF Power: ");
-  Serial.println(lora.getRFPower());
-  }
-
-
 
 void show(String msg)
   {
@@ -309,6 +257,65 @@ void show(uint16_t val, String suffix)
     show(msg);
     }
   }
+
+// Configure LoRa module
+void initLoRa()
+  {
+  if (settingsAreValid)
+    {
+    if (settings.debug)
+      Serial.println(F("++++++++ initializing LoRa radio ++++++++++++"));
+
+    digitalWrite(LORA_ENABLE_PIN,LORA_ENABLE); //turn on the LORA radio
+    delay(500); //let it initialize
+    lora.begin((long)settings.loRaBaudRate);
+    lora.setJsonDocument(doc);
+    if (settings.debug)
+      {
+      Serial.print("\nTesting LoRa device...");
+      String loraOK=lora.testComm()?"OK":"\nFailed";
+      Serial.println(loraOK);
+      show("Lora "+loraOK);
+      delay(1000);
+      }
+    }
+  }
+
+// Configure some LoRa parameters. I don't know why these particular ones
+// are set all in one bunch on the RYLR998
+void setLoRaParameters()
+  {
+  if (settingsAreValid)
+    {
+    lora.setParameter(settings.loRaSpreadingFactor, 
+                      settings.loRaBandwidth, 
+                      settings.loRaCodingRate, 
+                      settings.loRaPreamble);
+    }
+  }
+
+//Show actual RYLR998 settings
+void showLoraSettings()
+  {
+  Serial.println("\n*** Internal RYLR998 settings ***");
+  Serial.print("Address: ");
+  Serial.println(lora.getAddress());
+  Serial.print("Network ID: ");
+  Serial.println(lora.getNetworkID());
+  Serial.print("Band: ");
+  Serial.println(lora.getBand());
+  Serial.print("Baud Rate: ");
+  Serial.println(lora.getBaudRate());
+  Serial.print("Mode: ");
+  Serial.println(lora.getMode());
+  Serial.print("Parameters: ");
+  Serial.println(lora.getParameter());
+  Serial.print("Password: ");
+  Serial.println(lora.getCPIN());
+  Serial.print("RF Power: ");
+  Serial.println(lora.getRFPower());
+  }
+
 
 void initSensor()
   {
@@ -448,6 +455,9 @@ void initDisplay()
 
 void setup() 
   {
+  pinMode(LORA_ENABLE_PIN,OUTPUT);
+  digitalWrite(LORA_ENABLE_PIN,LORA_DISABLE); //turn off the LORA radio for now
+
   pinMode(PORT_XSHUT,OUTPUT);
   digitalWrite(PORT_XSHUT,LOW); //Let it finish booting
 
@@ -460,13 +470,16 @@ void setup()
     //initialize everything
     initDisplay();
     initSensor(); //sensor should be initialized after display because display sets up i2c
-    initLoRa();
+    // initLoRa(); //only do this when reporting
 
     //Get a measurement and compare the presence with the last one stored in EEPROM.
     //If they are the same, no need to phone home. Unless an hour has passed since
     //the last time home was phoned. 
     distance=measure(); 
-    show(distance," mm");
+    if ((unsigned int)distance < 8190)
+      show(distance," mm");
+    else
+      show("Out Of\nRange");
 
     isPresent=distance>settings.mindistance 
                 && distance<settings.maxdistance;
@@ -530,7 +543,11 @@ void loop()
     distance=measure();
     isPresent=distance>settings.mindistance 
               && distance<settings.maxdistance;
-    show(distance," mm");
+    if ((unsigned int)distance < 8190)
+      show(distance," mm");
+    else
+      show("Out Of\nRange");
+
     report();
     myDelay(1000); //give me time to read it
     } 
@@ -559,12 +576,14 @@ void loop()
     saveRTC(); //save the timing before we sleep 
     
     digitalWrite(PORT_XSHUT,LOW);   //turn off the TOF sensor
+    digitalWrite(LORA_ENABLE_PIN,LORA_DISABLE); //turn off the LORA radio
     if (settings.displayenabled)
       {
       digitalWrite(PORT_DISPLAY,LOW); //turn off the display only if it is enabled
       }
 
     unsigned long goodnight=min((unsigned long)settings.sleeptime,nextReportSecs);// whichever comes first
+    goodnight=max(goodnight,1ul); //always at least 1 second
     Serial.print("Sleeping for ");
     Serial.print(goodnight);
     Serial.println(" seconds");
@@ -606,17 +625,19 @@ void sendOrNot()
       )
     {      
     // ********************* attempt to connect to Wifi network
-    report();
-
-    if (isPresent)
+    bool ok=report();
+    if (ok)
       {
-      myRtc.presentReported=true;
-      myRtc.absentReported=false;
-      }
-    else
-      {
-      myRtc.absentReported=true;
-      myRtc.presentReported=false;
+      if (isPresent)
+        {
+        myRtc.presentReported=true;
+        myRtc.absentReported=false;
+        }
+      else
+        {
+        myRtc.absentReported=true;
+        myRtc.presentReported=false;
+        }
       }
     
     doneTimestamp=millis(); //this is to allow the publish to complete before sleeping
@@ -690,10 +711,10 @@ int measure()
 
 void showSettings()
   {
-  Serial.print("mindistance=<minimum presence distance in cm> (");
+  Serial.print("mindistance=<minimum presence distance in mm> (");
   Serial.print(settings.mindistance);
   Serial.println(")");
-  Serial.print("maxdistance=<maximum presence distance in cm> (");
+  Serial.print("maxdistance=<maximum presence distance in mm> (");
   Serial.print(settings.maxdistance);
   Serial.println(")");
   Serial.print("sleeptime=<seconds to sleep between measurements> (");
@@ -1016,26 +1037,35 @@ float convertToVoltage(int raw)
 /************************
  * Do the LoRa thing
  ************************/
-void report()
+bool report()
   {
+  Serial.print("===========LORA_ENABLE_PIN is ");
+  Serial.println(digitalRead(LORA_ENABLE_PIN));
+  //if (!digitalRead(LORA_ENABLE_PIN)!=LORA_ENABLE) //make sure it's not already enabled
+    {
+    initLoRa(); //fire up the radio
+    }
   doc["distance"]=distance;
   doc["battery"]=(float)convertToVoltage(readBattery());
   doc["isPresent"]=isPresent;
+  myRtc.acked=false; //no ack yet
   if (publish())
+    {
     Serial.println("Sending data successful.");
+    for (int i=0;i<5;i++)
+      {
+    //  Serial.println("handleIncoming loop "+String(i));
+      lora.handleIncoming(); //check for ack
+      checkForAck();
+      if (myRtc.acked)
+        break;
+      delay(500);
+      }
+    }
+
   else
     Serial.println("Sending data failed!");
-  
-  myRtc.acked=false; //no ack yet
-  for (int i=0;i<5;i++)
-    {
-  //  Serial.println("handleIncoming loop "+String(i));
-    lora.handleIncoming(); //check for ack
-    checkForAck();
-    if (myRtc.acked)
-      break;
-    delay(500);
-    }
+  return myRtc.acked;
   }
 
 boolean publish()
