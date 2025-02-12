@@ -258,6 +258,12 @@ void show(uint16_t val, String suffix)
     }
   }
 
+  //Turn the power on or off to the LoRa radio
+  void loraRadio(boolean state)
+    {
+    digitalWrite(LORA_ENABLE_PIN,state?LORA_ENABLE:LORA_DISABLE); //turn on the LORA radio
+    }
+
 // Configure LoRa module
 void initLoRa()
   {
@@ -266,7 +272,7 @@ void initLoRa()
     if (settings.debug)
       Serial.println(F("++++++++ initializing LoRa radio ++++++++++++"));
 
-    digitalWrite(LORA_ENABLE_PIN,LORA_ENABLE); //turn on the LORA radio
+    loraRadio(LORA_ON); //turn on the LORA radio
     delay(500); //let it initialize
     lora.begin((long)settings.loRaBaudRate);
     lora.setJsonDocument(doc);
@@ -458,7 +464,7 @@ void initDisplay()
 void setup() 
   {
   pinMode(LORA_ENABLE_PIN,OUTPUT);
-  digitalWrite(LORA_ENABLE_PIN,LORA_DISABLE); //turn off the LORA radio for now
+  loraRadio(LORA_OFF); //turn off the LORA radio for now
 
   pinMode(PORT_XSHUT,OUTPUT);
   digitalWrite(PORT_XSHUT,LOW); //Let it finish booting
@@ -578,7 +584,7 @@ void loop()
     saveRTC(); //save the timing before we sleep 
     
     digitalWrite(PORT_XSHUT,LOW);   //turn off the TOF sensor
-    digitalWrite(LORA_ENABLE_PIN,LORA_DISABLE); //turn off the LORA radio
+    loraRadio(LORA_OFF); //turn off the LORA radio
     if (settings.displayenabled)
       {
       digitalWrite(PORT_DISPLAY,LOW); //turn off the display only if it is enabled
@@ -1041,12 +1047,7 @@ float convertToVoltage(int raw)
  ************************/
 bool report()
   {
-  Serial.print("===========LORA_ENABLE_PIN is ");
-  Serial.println(digitalRead(LORA_ENABLE_PIN));
-  //if (!digitalRead(LORA_ENABLE_PIN)!=LORA_ENABLE) //make sure it's not already enabled
-    {
-    initLoRa(); //fire up the radio
-    }
+  initLoRa(); //fire up the radio
   doc["distance"]=distance;
   doc["battery"]=(float)convertToVoltage(readBattery());
   doc["isPresent"]=isPresent;
@@ -1060,7 +1061,10 @@ bool report()
       lora.handleIncoming(); //check for ack
       checkForAck();
       if (myRtc.acked)
+        {
+        loraRadio(LORA_OFF); //turn off the radio
         break;
+        }
       delay(500);
       }
     }

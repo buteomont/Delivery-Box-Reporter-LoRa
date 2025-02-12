@@ -7,7 +7,8 @@
 #define PORT_DISPLAY D7
 #define SDA_PIN D2
 #define SCL_PIN D1
-
+#define LORA_ON true
+#define LORA_OFF false
 #define MAX_HARDWARE_FAILURES 20
 #define VALID_SETTINGS_FLAG 0xDAB0
 #define JSON_MESSAGE_SIZE 50

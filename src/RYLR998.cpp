@@ -111,10 +111,10 @@ void RYLR998::begin(long baudRate)
       {
       _serial.read(); 
       }
-      
+
     while(!testComm())
       {
-      // keep trying until if works
+      // keep trying until it works
       }
     }
 
