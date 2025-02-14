@@ -114,6 +114,7 @@ void RYLR998::begin(long baudRate)
 
     while(!testComm())
       {
+      Serial.print(".");
       // keep trying until it works
       }
     }
