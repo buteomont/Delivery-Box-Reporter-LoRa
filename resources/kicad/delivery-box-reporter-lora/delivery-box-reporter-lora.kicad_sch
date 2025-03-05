@@ -5,9 +5,9 @@
 	(uuid "b5a49f66-f3e1-4174-95b7-6fa32f14e918")
 	(paper "A")
 	(title_block
-		(title "Delivery Box Reporter Transmitter")
-		(date "2025-02-08")
-		(rev "2.2.0")
+		(title "Delivery Box Reporter Transmitter LoRa")
+		(date "2025-03-04")
+		(rev "2.2.1")
 	)
 	(lib_symbols
 		(symbol "Battery_Management2:TP4056_Battery_Charger_Board"
@@ -2858,8 +2858,8 @@
 			(exclude_from_sim no)
 			(in_bom yes)
 			(on_board yes)
-			(property "Reference" "Q"
-				(at 5.08 1.905 0)
+			(property "Reference" "Q1"
+				(at -9.144 -0.762 0)
 				(effects
 					(font
 						(size 1.27 1.27)
@@ -2868,7 +2868,7 @@
 				)
 			)
 			(property "Value" "2N3906"
-				(at 5.08 0 0)
+				(at -12.954 1.016 0)
 				(effects
 					(font
 						(size 1.27 1.27)
@@ -2986,10 +2986,10 @@
 				)
 			)
 			(symbol "2N3906_1_1"
-				(pin passive line
-					(at 2.54 -5.08 90)
-					(length 2.54)
-					(name "E"
+				(pin input line
+					(at -5.08 0 0)
+					(length 5.715)
+					(name "B"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -3004,10 +3004,10 @@
 						)
 					)
 				)
-				(pin input line
-					(at -5.08 0 0)
-					(length 5.715)
-					(name "B"
+				(pin passive line
+					(at 2.54 -5.08 90)
+					(length 2.54)
+					(name "E"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -3303,6 +3303,12 @@
 		(uuid "140bb09d-419e-42a9-8b37-018ffd0ff249")
 	)
 	(junction
+		(at 111.76 73.66)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "35178092-4b24-43ef-9bc7-6ee610dc66ba")
+	)
+	(junction
 		(at 202.692 71.628)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -3331,12 +3337,6 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "c262c2b9-09f0-451e-86e9-f0bf0ab77ad6")
-	)
-	(junction
-		(at 111.76 73.66)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "d3ce37d8-9275-4c45-adb8-9f7fdb92a6cd")
 	)
 	(junction
 		(at 146.558 52.832)
@@ -3387,6 +3387,16 @@
 			(type default)
 		)
 		(uuid "009d161b-2f1e-4de7-b189-4536bf3a68d8")
+	)
+	(wire
+		(pts
+			(xy 111.76 73.66) (xy 115.316 73.66)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "08022ab1-0b7f-413c-b988-72d1f00d63d1")
 	)
 	(wire
 		(pts
@@ -3510,6 +3520,16 @@
 	)
 	(wire
 		(pts
+			(xy 105.664 73.66) (xy 111.76 73.66)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "286f734b-a889-497c-a044-612dc35a346a")
+	)
+	(wire
+		(pts
 			(xy 158.496 64.008) (xy 158.496 65.786)
 		)
 		(stroke
@@ -3517,16 +3537,6 @@
 			(type default)
 		)
 		(uuid "2991ea4c-2d66-4d30-b1e9-e156278d9529")
-	)
-	(wire
-		(pts
-			(xy 111.76 73.66) (xy 115.316 73.66)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "2ac48033-3716-4062-849d-1e4ea3ae44f9")
 	)
 	(wire
 		(pts
@@ -3670,13 +3680,13 @@
 	)
 	(wire
 		(pts
-			(xy 105.664 73.66) (xy 111.76 73.66)
+			(xy 111.76 54.864) (xy 111.76 73.66)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "64173229-e163-4a72-9914-79e76b11311a")
+		(uuid "66105a1e-9c09-49eb-9718-75736e042e73")
 	)
 	(wire
 		(pts
@@ -3767,16 +3777,6 @@
 			(type default)
 		)
 		(uuid "8197f7f6-aa32-4c00-984e-1abbef1728aa")
-	)
-	(wire
-		(pts
-			(xy 111.76 54.864) (xy 111.76 73.66)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "8812df9d-ff15-4ad9-88c7-358f5048545b")
 	)
 	(wire
 		(pts
@@ -3880,7 +3880,7 @@
 	)
 	(wire
 		(pts
-			(xy 146.558 52.832) (xy 146.558 57.912)
+			(xy 146.558 52.832) (xy 146.558 61.214)
 		)
 		(stroke
 			(width 0)
@@ -3890,7 +3890,7 @@
 	)
 	(wire
 		(pts
-			(xy 146.558 62.992) (xy 146.558 81.28)
+			(xy 146.558 66.294) (xy 146.558 81.28)
 		)
 		(stroke
 			(width 0)
@@ -4270,6 +4270,17 @@
 		)
 		(uuid "5cd79782-1045-4d77-9bec-ecd2f5fa480d")
 	)
+	(text "* Notes\n1. 	Some versions of the ESP8266 D1 Mini will not\n	wake up when D0 is connected to RST. This is\n	probably due to a stronger pull-up resistor on\n	RST. Test your D1 Mini before soldering it in!"
+		(exclude_from_sim no)
+		(at 197.358 128.524 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "7d839c50-a064-4fc6-9394-69b31530bef3")
+	)
 	(text "-"
 		(exclude_from_sim no)
 		(at 138.684 132.334 0)
@@ -4289,6 +4300,16 @@
 			)
 		)
 		(uuid "d05a775b-ad5b-4f50-bbf9-61fb2150f155")
+	)
+	(text "* Note 1"
+		(exclude_from_sim no)
+		(at 109.474 106.172 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+		(uuid "d061d8ce-6c3b-430a-87c1-9811d6a61e4e")
 	)
 	(text "+"
 		(exclude_from_sim no)
@@ -5829,7 +5850,7 @@
 	)
 	(symbol
 		(lib_id "Device:R_Small_US")
-		(at 146.558 60.452 180)
+		(at 146.558 63.754 180)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -5837,7 +5858,7 @@
 		(dnp no)
 		(uuid "987e8a36-0b26-4f84-ad31-1bb36b2358d3")
 		(property "Reference" "R5"
-			(at 141.732 58.928 0)
+			(at 141.732 62.23 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -5845,8 +5866,8 @@
 				(justify right)
 			)
 		)
-		(property "Value" "10K"
-			(at 140.208 61.468 0)
+		(property "Value" "1K"
+			(at 142.24 64.77 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -5855,7 +5876,7 @@
 			)
 		)
 		(property "Footprint" "Resistor_SMD:R_0805_2012Metric"
-			(at 146.558 60.452 0)
+			(at 146.558 63.754 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -5864,7 +5885,7 @@
 			)
 		)
 		(property "Datasheet" "~"
-			(at 146.558 60.452 0)
+			(at 146.558 63.754 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -5873,7 +5894,7 @@
 			)
 		)
 		(property "Description" "Resistor, small US symbol"
-			(at 146.558 60.452 0)
+			(at 146.558 63.754 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -6040,7 +6061,7 @@
 		(dnp no)
 		(uuid "a8055628-047a-4ef7-9be1-13acb908ec7c")
 		(property "Reference" "Q1"
-			(at 142.494 52.07 0)
+			(at 149.098 56.388 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -6049,7 +6070,7 @@
 			)
 		)
 		(property "Value" "2N3906"
-			(at 138.684 53.848 0)
+			(at 146.812 58.166 0)
 			(effects
 				(font
 					(size 1.27 1.27)

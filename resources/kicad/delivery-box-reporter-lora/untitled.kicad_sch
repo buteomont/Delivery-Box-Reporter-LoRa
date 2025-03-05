@@ -6,8 +6,8 @@
 	(paper "A4")
 	(title_block
 		(title "LoRa to MQTT Converter")
-		(date "2025-02-08")
-		(rev "2.2.0")
+		(date "2025-03-04")
+		(rev "2.2.1")
 	)
 	(lib_symbols
 		(symbol "Davids_Symbols:128x32_OLED_Display"

@@ -259,9 +259,33 @@ void show(uint16_t val, String suffix)
   }
 
   //Turn the power on or off to the LoRa radio
-  void loraRadio(boolean state)
+  void loraRadio(boolean requestedState)
     {
-    digitalWrite(LORA_ENABLE_PIN,state?LORA_ENABLE:LORA_DISABLE); //turn on the LORA radio
+    digitalWrite(LORA_ENABLE_PIN,requestedState?LORA_ENABLE:LORA_DISABLE); //turn on the LORA radio
+    if (requestedState==LORA_ON)
+      delay(250);
+
+    //If we're turning it on, make sure it comes up ok.
+    // if (requestedState==LORA_ON)
+    //   {
+    //   int count=100;
+    //   while (!lora.testComm()) //keep testing it until it wakes up
+    //     {
+    //     if (settings.debug)
+    //       {
+    //       Serial.print(count);
+    //       Serial.print(" ");
+    //       }
+    //     checkForCommand();
+    //     delay(100);
+    //     if (count-- <=0)
+    //       {
+    //       show("Lora\nFailed");
+    //       Serial.println("Lora radio failed to initialize.");
+    //       break;
+    //       }
+    //     }
+    //   }
     }
 
 // Configure LoRa module
@@ -273,7 +297,6 @@ void initLoRa()
       Serial.println(F("++++++++ initializing LoRa radio ++++++++++++"));
 
     loraRadio(LORA_ON); //turn on the LORA radio
-    delay(500); //let it initialize
     lora.begin((long)settings.loRaBaudRate);
     lora.setJsonDocument(doc);
     if (settings.debug)
